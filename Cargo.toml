@@ -1,0 +1,11 @@
+[package]
+name = "hashed"
+authors = ["Milkey Mouse <milkeymouse@meme.institute>"]
+description = "A Hashed<T> you can convert any T: Hash into and still do equality checks on"
+repository = "https://github.com/milkey-mouse/hashed"
+readme = "README.md"
+version = "0.1.0"
+license = "CC0"
+keywords = ["hash", "comparison", "equality", "hashed", "wrapper"]
+categories = ["data-structures"]
+edition = "2018"
