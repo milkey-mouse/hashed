@@ -1,5 +1,6 @@
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 #![cfg_attr(not(feature = "std"), allow(deprecated))]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "std")]
 use std::collections::hash_map::DefaultHasher;
@@ -14,7 +15,7 @@ use core::marker::PhantomData;
 
 #[cfg(feature = "nightly")]
 fn type_name<T: ?Sized>() -> &'static str {
-    unsafe { std::intrinsics::type_name::<T>() }
+    unsafe { core::intrinsics::type_name::<T>() }
 }
 
 #[cfg(not(feature = "nightly"))]
@@ -84,12 +85,26 @@ mod tests {
     }
 
     #[test]
-    fn new_hashed() {
+    #[cfg(feature = "std")]
+    fn new_hashed_str() {
         let mut x = String::from("hello");
 
         let a = Hashed::new(&x);  // Hashed::new() allows us to keep using the hashee
 
         x.push_str("world");
+
+        let b = Hashed::new(&x);
+
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn new_hashed_int() {
+        let mut x = 1337;
+
+        let a = Hashed::new(&x);
+
+        x += 30000;
 
         let b = Hashed::new(&x);
 
