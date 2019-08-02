@@ -9,3 +9,8 @@ license = "CC0"
 keywords = ["hash", "comparison", "equality", "hashed", "wrapper"]
 categories = ["data-structures"]
 edition = "2018"
+
+[features]
+default = ["std"]
+nightly = []
+std = []
