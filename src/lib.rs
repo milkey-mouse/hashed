@@ -9,9 +9,24 @@ use std::collections::hash_map::DefaultHasher;
 // TODO: why is DefaultHasher not in core‽
 use core::hash::SipHasher as DefaultHasher;
 
-use core::fmt::{self, Debug, Formatter};
+use core::fmt::{self, Debug, Formatter, LowerHex};
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
+
+#[cfg(feature = "truncate")]
+pub use num_traits::AsPrimitive;
+
+#[cfg(not(feature = "truncate"))]
+pub trait AsPrimitive<T> {
+    fn as_(self) -> T;
+}
+
+#[cfg(not(feature = "truncate"))]
+impl<T> AsPrimitive<T> for T {
+    fn as_(self) -> T {
+        self
+    }
+}
 
 #[cfg(feature = "nightly")]
 fn type_name<T: ?Sized>() -> &'static str {
@@ -27,30 +42,67 @@ fn type_name<T: ?Sized>() -> &'static str {
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Hashed<T: ?Sized + Hash> {
-    value: u64,
+pub struct HashedGeneric<T, V>
+where
+    T: ?Sized + Hash,
+    V: AsPrimitive<u64> + Copy,
+    u64: AsPrimitive<V>,
+{
+    value: V,
     hashee_type: PhantomData<T>,
 }
 
-impl<T: ?Sized + Hash> Debug for Hashed<T> {
+pub type Hashed<T> = HashedGeneric<T, u64>;
+
+#[cfg(feature = "truncate")]
+pub type Hashed32<T> = HashedGeneric<T, u32>;
+#[cfg(feature = "truncate")]
+pub type Hashed16<T> = HashedGeneric<T, u16>;
+#[cfg(feature = "truncate")]
+pub type Hashed8<T> = HashedGeneric<T, u8>;
+
+impl<T, V> Debug for HashedGeneric<T, V>
+where
+    T: ?Sized + Hash,
+    V: AsPrimitive<u64> + LowerHex + Copy,
+    u64: AsPrimitive<V>,
+{
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Hashed<{}>({:x})", type_name::<T>(), self.value)
     }
 }
 
-impl<T: Hash> From<T> for Hashed<T> {
+impl<T, V> From<T> for HashedGeneric<T, V>
+where
+    T: Hash,
+    V: AsPrimitive<u64> + Copy,
+    u64: AsPrimitive<V>,
+{
     fn from(hashee: T) -> Self {
         Self::new(&hashee)
     }
 }
 
-impl<T: ?Sized + Hash> Into<u64> for Hashed<T> {
+// Due to the limitations of the Into trait, this always converts into a u64.
+// To obtain the inner value as its "native" data type (it may be truncated),
+// use the Hashed::value() function instead.
+impl<T, V> Into<u64> for HashedGeneric<T, V>
+where
+    T: ?Sized + Hash,
+    V: AsPrimitive<u64> + Copy,
+    u64: AsPrimitive<V>,
+{
     fn into(self) -> u64 {
-        self.value
+        self.value.as_()
     }
 }
 
-impl<T: ?Sized + Hash> Hashed<T> {
+impl<T, V> HashedGeneric<T, V>
+where
+    T: ?Sized + Hash,
+    V: AsPrimitive<u64> + Copy,
+    u64: AsPrimitive<V>,
+{
     /// Create a new Hashed<T> from &T. Note that this function doesn't consume
     /// the input, so if it is later modified the hash will not update. To stop
     /// these kinds of errors, it is recommended to use the From or Into traits
@@ -59,20 +111,20 @@ impl<T: ?Sized + Hash> Hashed<T> {
         let mut hasher = DefaultHasher::new();
         hashee.hash(&mut hasher);
         Self {
-            value: hasher.finish(),
+            value: hasher.finish().as_(),
             hashee_type: PhantomData,
         }
     }
 
     /// Get the actual hash value the Hashed<T> is wrapping.
-    pub fn value(&self) -> u64 {
+    pub fn value(&self) -> V {
         self.value
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Hashed;
+    use super::*;
 
     #[test]
     fn from_hashed() {
@@ -89,7 +141,7 @@ mod tests {
     fn new_hashed_str() {
         let mut x = String::from("hello");
 
-        let a = Hashed::new(&x);  // Hashed::new() allows us to keep using the hashee
+        let a = Hashed::new(&x); // Hashed::new() allows us to keep using the hashee
 
         x.push_str("world");
 
@@ -133,11 +185,53 @@ mod tests {
     fn into_u64() {
         let a = 1337;
         let b = 1337;
-    
+
         let a_hash_value: u64 = Hashed::from(a).into();
         let b_hash_value: u64 = Hashed::from(b).into();
 
         assert_eq!(a, b);
         assert_eq!(a_hash_value, b_hash_value);
     }
+
+    #[test]
+    #[cfg(feature = "truncate")]
+    fn hashed_eq_32() {
+        let a = 1337;
+        let b = 1337;
+
+        assert_eq!(a, b);
+        assert_eq!(Hashed32::from(a), Hashed32::from(b));
+    }
+
+    #[test]
+    #[cfg(feature = "truncate")]
+    fn hashed_eq_16() {
+        let a = 1337;
+        let b = 1337;
+
+        assert_eq!(a, b);
+        assert_eq!(Hashed16::from(a), Hashed16::from(b));
+    }
+
+    #[test]
+    #[cfg(feature = "truncate")]
+    fn hashed_not_eq_32() {
+        let a = "hello";
+        let b = "world";
+
+        assert_ne!(a, b);
+        assert_ne!(Hashed32::from(a), Hashed32::from(b));
+    }
+
+    #[test]
+    #[cfg(feature = "truncate")]
+    fn hashed_not_eq_16() {
+        let a = "hello";
+        let b = "world";
+
+        assert_ne!(a, b);
+        assert_ne!(Hashed16::from(a), Hashed16::from(b));
+    }
+
+    // not doing a hashed_eq_8 because 8-bit hashes are rather likely to collide
 }

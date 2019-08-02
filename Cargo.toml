@@ -10,7 +10,11 @@ keywords = ["hash", "comparison", "equality", "hashed", "wrapper"]
 categories = ["data-structures"]
 edition = "2018"
 
+[dependencies]
+num-traits = { version = "0.2", default-features = false, optional = true }
+
 [features]
 default = ["std"]
 nightly = []
 std = []
+truncate = ["num-traits"]
