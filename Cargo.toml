@@ -1,7 +1,7 @@
 [package]
 name = "hashed"
 authors = ["Milkey Mouse <milkeymouse@meme.institute>"]
-description = "A Hashed<T> you can convert any T: Hash into and still do equality checks on"
+description = "A Hashed type you can convert any hashable type into and still do equality checks on"
 repository = "https://github.com/milkey-mouse/hashed"
 readme = "README.md"
 version = "0.1.1"
