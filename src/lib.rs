@@ -72,6 +72,17 @@ where
     }
 }
 
+impl<T, V> Default for HashedGeneric<T, V>
+where
+    T: Hash + Default,
+    V: AsPrimitive<u64> + Copy,
+    u64: AsPrimitive<V>,
+{
+    fn default() -> Self {
+        T::default().into()
+    }
+}
+
 impl<T, V> From<T> for HashedGeneric<T, V>
 where
     T: Hash,
@@ -234,4 +245,12 @@ mod tests {
     }
 
     // not doing a hashed_eq_8 because 8-bit hashes are rather likely to collide
+
+    #[test]
+    fn default_impl() {
+        let x: Hashed<_> = Some(1337).into();
+        let default = Hashed::default();  // default for Option is None
+
+        assert_ne!(x, default);
+    }
 }
