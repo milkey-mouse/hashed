@@ -44,9 +44,7 @@ fn type_name<T: ?Sized>() -> &'static str {
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct HashedGeneric<T, V>
 where
-    T: ?Sized + Hash,
-    V: AsPrimitive<u64> + Copy,
-    u64: AsPrimitive<V>,
+    T: ?Sized,
 {
     value: V,
     hashee_type: PhantomData<T>,
@@ -63,9 +61,8 @@ pub type Hashed8<T> = HashedGeneric<T, u8>;
 
 impl<T, V> Debug for HashedGeneric<T, V>
 where
-    T: ?Sized + Hash,
-    V: AsPrimitive<u64> + LowerHex + Copy,
-    u64: AsPrimitive<V>,
+    T: ?Sized,
+    V: LowerHex,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Hashed<{}>({:x})", type_name::<T>(), self.value)
@@ -74,7 +71,7 @@ where
 
 impl<T, V> Default for HashedGeneric<T, V>
 where
-    T: Hash + Default,
+    T: ?Sized + Hash + Default,
     V: AsPrimitive<u64> + Copy,
     u64: AsPrimitive<V>,
 {
