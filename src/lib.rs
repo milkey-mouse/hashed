@@ -79,18 +79,21 @@ where
     u64: AsPrimitive<V>,
 {
     fn default() -> Self {
-        T::default().into()
+        (&T::default()).into()
     }
 }
 
-impl<T, V> From<T> for HashedGeneric<T, V>
+impl<T, V> From<&T> for HashedGeneric<T, V>
 where
     T: Hash,
     V: AsPrimitive<u64> + Copy,
     u64: AsPrimitive<V>,
 {
-    fn from(hashee: T) -> Self {
-        Self::new(&hashee)
+    fn from(hashee: &T) -> Self {
+        let mut hasher = DefaultHasher::new();
+        hashee.hash(&mut hasher);
+        let value = hasher.finish().as_();
+        Self { value, hashee_type: PhantomData }
     }
 }
 
@@ -110,23 +113,9 @@ where
 
 impl<T, V> HashedGeneric<T, V>
 where
-    T: ?Sized + Hash,
-    V: AsPrimitive<u64> + Copy,
-    u64: AsPrimitive<V>,
+    T: ?Sized,
+    V: Copy
 {
-    /// Create a new Hashed<T> from &T. Note that this function doesn't consume
-    /// the input, so if it is later modified the hash will not update. To stop
-    /// these kinds of errors, it is recommended to use the From or Into traits
-    /// instead of this function whenever possible.
-    pub fn new(hashee: &T) -> Self {
-        let mut hasher = DefaultHasher::new();
-        hashee.hash(&mut hasher);
-        Self {
-            value: hasher.finish().as_(),
-            hashee_type: PhantomData,
-        }
-    }
-
     /// Get the actual hash value the Hashed<T> is wrapping.
     pub fn value(&self) -> V {
         self.value
@@ -139,12 +128,12 @@ mod tests {
 
     #[test]
     fn from_hashed() {
-        let _ = Hashed::from("hello");
+        let _ = Hashed::from(&"hello");
     }
 
     #[test]
     fn into_hashed() {
-        let _: Hashed<_> = "hello".into();
+        let _: Hashed<_> = (&"hello").into();
     }
 
     #[test]
@@ -152,11 +141,11 @@ mod tests {
     fn new_hashed_str() {
         let mut x = String::from("hello");
 
-        let a = Hashed::new(&x); // Hashed::new() allows us to keep using the hashee
+        let a = Hashed::from(&x); // Hashed::new() allows us to keep using the hashee
 
         x.push_str("world");
 
-        let b = Hashed::new(&x);
+        let b = Hashed::from(&x);
 
         assert_ne!(a, b);
     }
@@ -165,11 +154,11 @@ mod tests {
     fn new_hashed_int() {
         let mut x = 1337;
 
-        let a = Hashed::new(&x);
+        let a = Hashed::from(&x);
 
         x += 30000;
 
-        let b = Hashed::new(&x);
+        let b = Hashed::from(&x);
 
         assert_ne!(a, b);
     }
@@ -180,7 +169,7 @@ mod tests {
         let b = 1337;
 
         assert_eq!(a, b);
-        assert_eq!(Hashed::from(a), Hashed::from(b));
+        assert_eq!(Hashed::from(&a), Hashed::from(&b));
     }
 
     #[test]
@@ -189,7 +178,7 @@ mod tests {
         let b = "world";
 
         assert_ne!(a, b);
-        assert_ne!(Hashed::from(a), Hashed::from(b));
+        assert_ne!(Hashed::from(&a), Hashed::from(&b));
     }
 
     #[test]
@@ -197,8 +186,8 @@ mod tests {
         let a = 1337;
         let b = 1337;
 
-        let a_hash_value: u64 = Hashed::from(a).into();
-        let b_hash_value: u64 = Hashed::from(b).into();
+        let a_hash_value: u64 = Hashed::from(&a).into();
+        let b_hash_value: u64 = Hashed::from(&b).into();
 
         assert_eq!(a, b);
         assert_eq!(a_hash_value, b_hash_value);
@@ -248,7 +237,7 @@ mod tests {
 
     #[test]
     fn default_impl() {
-        let x: Hashed<_> = Some(1337).into();
+        let x: Hashed<_> = (&Some(1337)).into();
         let default = Hashed::default();  // default for Option is None
 
         assert_ne!(x, default);
