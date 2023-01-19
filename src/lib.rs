@@ -113,9 +113,8 @@ where
 
 impl<T, V> HashedGeneric<T, V>
 where
-    T: ?Sized + Hash,
-    V: AsPrimitive<u64> + Copy,
-    u64: AsPrimitive<V>,
+    T: ?Sized,
+    V: Copy
 {
     /// Get the actual hash value the Hashed<T> is wrapping.
     pub fn value(&self) -> V {
