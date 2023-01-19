@@ -1,4 +1,3 @@
-#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 #![cfg_attr(not(feature = "std"), allow(deprecated))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
