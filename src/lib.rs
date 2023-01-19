@@ -1,4 +1,3 @@
-#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 #![cfg_attr(not(feature = "std"), allow(deprecated))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -12,6 +11,7 @@ use core::hash::SipHasher as DefaultHasher;
 use core::fmt::{self, Debug, Formatter, LowerHex};
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
+use core::any::type_name;
 
 #[cfg(feature = "truncate")]
 pub use num_traits::AsPrimitive;
@@ -28,15 +28,6 @@ impl<T> AsPrimitive<T> for T {
     }
 }
 
-#[cfg(feature = "nightly")]
-fn type_name<T: ?Sized>() -> &'static str {
-    unsafe { core::intrinsics::type_name::<T>() }
-}
-
-#[cfg(not(feature = "nightly"))]
-fn type_name<T: ?Sized>() -> &'static str {
-    "?"
-}
 
 // TODO: be generic over Hasher
 
